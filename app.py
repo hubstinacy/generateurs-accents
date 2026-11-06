@@ -2,21 +2,38 @@ import gradio as gr
 from gtts import gTTS
 
 def generate_accent(text, accent_origin):
-    # Dictionnaire des langues (le moteur vocal)
-    # L'astuce : Le moteur lit le texte fourni avec les règles de prononciation de son pays d'origine.
+    # Dictionnaire étendu au maximum des capacités de Google TTS (Pays et grandes régions)
     accents = {
-        "Voix Américaine (US)": ("en", "us"),
-        "Voix Britannique (UK)": ("en", "co.uk"),
-        "Voix Française (France)": ("fr", "fr"),
-        "Voix Française (Sénégal/Afrique)": ("fr", "sn"),
-        "Voix Québécoise": ("fr", "ca"),
-        "Voix Espagnole": ("es", "es"),
-        "Voix Mexicaine": ("es", "com.mx"),
-        "Voix Allemande": ("de", "de"),
-        "Voix Italienne": ("it", "it"),
-        "Voix Chinoise (Mandarin)": ("zh-CN", "com"),
-        "Voix Japonaise": ("ja", "co.jp"),
-        "Voix Indienne (Hindi)": ("hi", "co.in")
+        # --- ANGLAIS (Forte variation selon le pays) ---
+        "Anglais (États-Unis)": ("en", "us"),
+        "Anglais (Royaume-Uni)": ("en", "co.uk"),
+        "Anglais (Australie)": ("en", "com.au"),
+        "Anglais (Irlande)": ("en", "ie"),
+        "Anglais (Afrique du Sud)": ("en", "co.za"),
+        "Anglais (Inde)": ("en", "co.in"),
+        "Anglais (Nigeria)": ("en", "com.ng"),
+        
+        # --- FRANÇAIS ---
+        "Français (France)": ("fr", "fr"),
+        "Français (Québec/Canada)": ("fr", "ca"),
+        "Français (Sénégal)": ("fr", "sn"), # Note: la variation africaine de Google reste très légère
+        
+        # --- ESPAGNOL ---
+        "Espagnol (Espagne)": ("es", "es"),
+        "Espagnol (Mexique)": ("es", "com.mx"),
+        "Espagnol (États-Unis)": ("es", "com"),
+        
+        # --- PORTUGAIS ---
+        "Portugais (Portugal)": ("pt", "pt"),
+        "Portugais (Brésil)": ("pt", "com.br"),
+        
+        # --- AUTRES LANGUES ---
+        "Allemand": ("de", "de"),
+        "Italien": ("it", "it"),
+        "Chinois (Mandarin)": ("zh-CN", "com"),
+        "Japonais": ("ja", "co.jp"),
+        "Russe": ("ru", "ru"),
+        "Arabe": ("ar", "com")
     }
     
     lang, tld = accents.get(accent_origin, ("fr", "fr"))
@@ -29,21 +46,24 @@ def generate_accent(text, accent_origin):
     except Exception as e:
         return None, f"Erreur : {str(e)}"
 
+# Interface Gradio
 with gr.Blocks(title="Machine à Accents", theme=gr.themes.Soft()) as app:
-    gr.Markdown("# 🌍 La Machine à Accents")
-    gr.Markdown("**L'astuce :** Écris ton texte dans la langue que tu souhaites, puis choisis la voix d'un autre pays. Exemple : Tape du Français, choisis *Voix Américaine*, et écoute le résultat !")
+    gr.Markdown("# 🌍 La Machine à Accents (Max gTTS)")
+    gr.Markdown("**Rappel :** gTTS gère uniquement les accents liés aux pays (via les domaines Google). Pour des accents de villes ou de villages, une IA Premium (ElevenLabs) est requise.")
     
-    text_input = gr.Textbox(label="Texte à prononcer", placeholder="Ex : Bonjour, je voudrais manger une pomme...")
+    text_input = gr.Textbox(label="Texte à prononcer", placeholder="Ex : Bonjour, comment allez-vous aujourd'hui ?")
     
     accent_dropdown = gr.Dropdown(
         choices=[
-            "Voix Américaine (US)", "Voix Britannique (UK)", 
-            "Voix Française (France)", "Voix Française (Sénégal/Afrique)", "Voix Québécoise",
-            "Voix Espagnole", "Voix Mexicaine", "Voix Allemande", "Voix Italienne", 
-            "Voix Chinoise (Mandarin)", "Voix Japonaise", "Voix Indienne (Hindi)"
+            "Anglais (États-Unis)", "Anglais (Royaume-Uni)", "Anglais (Australie)", 
+            "Anglais (Irlande)", "Anglais (Afrique du Sud)", "Anglais (Inde)", "Anglais (Nigeria)",
+            "Français (France)", "Français (Québec/Canada)", "Français (Sénégal)",
+            "Espagnol (Espagne)", "Espagnol (Mexique)", "Espagnol (États-Unis)",
+            "Portugais (Portugal)", "Portugais (Brésil)",
+            "Allemand", "Italien", "Chinois (Mandarin)", "Japonais", "Russe", "Arabe"
         ], 
         label="Origine de la voix (Le filtre d'accent)", 
-        value="Voix Américaine (US)"
+        value="Anglais (États-Unis)"
     )
     
     btn = gr.Button("Générer l'audio", variant="primary")
