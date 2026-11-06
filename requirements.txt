@@ -1,2 +1,2 @@
 gradio
-gTTS
+edge-tts
