@@ -2,77 +2,73 @@ import gradio as gr
 import edge_tts
 import asyncio
 
-# Dictionnaire étendu avec accents ethniques et régionaux
+# Liste étendue des voix
 VOICES = {
-    # --- FRANCOPHONES ---
     "🇫🇷 France - Homme (Henri)": "fr-FR-HenriNeural",
     "🇫🇷 France - Femme (Denise)": "fr-FR-DeniseNeural",
     "🇧🇪 Belgique - Homme (Gerard)": "fr-BE-GerardNeural",
-    "🇧🇪 Belgique - Femme (Charline)": "fr-BE-CharlineNeural",
     "🇨🇦 Québec - Homme (Antoine)": "fr-CA-AntoineNeural",
-    "🇨🇦 Québec - Femme (Sylvie)": "fr-CA-SylvieNeural",
     "🇨🇭 Suisse - Homme (Fabrice)": "fr-CH-FabriceNeural",
-    
-    # --- ETHNIES & DIVERSITÉ (Voix étrangères lisant du français) ---
-    "🌍 Accent Africain (Swahili) - Homme": "sw-KE-RafikiNeural",
-    "🌍 Accent Africain (Swahili) - Femme": "sw-KE-ZuriNeural",
-    "🏜️ Accent Arabe (Égypte) - Homme": "ar-EG-ShakirNeural",
-    "🏜️ Accent Arabe (Égypte) - Femme": "ar-EG-SalmaNeural",
-    "🌶️ Accent Indien (Hindi) - Homme": "hi-IN-MadhurNeural",
-    "🌶️ Accent Indien (Hindi) - Femme": "hi-IN-SwaraNeural",
-    "🌸 Accent Asiatique (Japonais) - Homme": "ja-JP-KeitaNeural",
-    "🌸 Accent Asiatique (Japonais) - Femme": "ja-JP-NanamiNeural",
-    "🇺🇸 Accent Américain - Homme": "en-US-ChristopherNeural",
-    "🇬🇧 Accent Britannique - Femme": "en-GB-SoniaNeural",
-    "🇪🇸 Accent Espagnol - Homme": "es-ES-AlvaroNeural",
-    "🇩🇪 Accent Allemand - Femme": "de-DE-AmalaNeural"
+    "🌍 Africain (Swahili) - Homme": "sw-KE-RafikiNeural",
+    "🌍 Africain (Swahili) - Femme": "sw-KE-ZuriNeural",
+    "🏜️ Arabe (Égypte) - Homme": "ar-EG-ShakirNeural",
+    "🌶️ Indien (Hindi) - Homme": "hi-IN-MadhurNeural",
+    "🌸 Asiatique (Japonais) - Femme": "ja-JP-NanamiNeural",
+    "🇺🇸 Américain - Homme": "en-US-ChristopherNeural",
+    "🇬🇧 Britannique - Femme": "en-GB-SoniaNeural",
+    "🇪🇸 Espagnol - Homme": "es-ES-AlvaroNeural",
+    "🇩🇪 Allemand - Femme": "de-DE-AmalaNeural"
 }
 
-async def generate_accent(text, voice_choice, age_choice):
+async def generate_pro(text, voice_choice, preset, speed, pitch_custom):
     voice_id = VOICES.get(voice_choice, "fr-FR-HenriNeural")
     
-    # Ajustement de la fréquence (Pitch) pour simuler l'âge
-    pitch_map = {
-        "🧑 Adulte (Normal)": "+0Hz",
-        "👶 Enfant (Voix aiguë)": "+50Hz",
-        "👹 Voix très grave / Sombre": "-25Hz"
-    }
-    pitch_value = pitch_map.get(age_choice, "+0Hz")
+    # Gestion des modes rapides ou mode "Pro" (Personnalisé)
+    if preset == "👶 Enfant":
+        pitch_str = "+50Hz"
+    elif preset == "👹 Monstre / Grave":
+        pitch_str = "-30Hz"
+    elif preset == "🤖 Personnalisé (Utiliser les curseurs)":
+        pitch_str = f"{pitch_custom:+}Hz"
+    else:
+        pitch_str = "+0Hz" # Normal
+        
+    speed_str = f"{speed:+}%" # Format requis par edge-tts (ex: +10%, -20%)
     
-    output_file = "audio_final.mp3"
+    output_file = "audio_app.mp3"
     
     try:
-        # On passe le paramètre pitch à la fonction Edge TTS
-        communicate = edge_tts.Communicate(text, voice_id, pitch=pitch_value)
+        communicate = edge_tts.Communicate(text, voice_id, rate=speed_str, pitch=pitch_str)
         await communicate.save(output_file)
-        return output_file, f"Génération réussie : {voice_choice} en mode {age_choice}"
+        return output_file, "✅ Audio généré avec succès !"
     except Exception as e:
-        return None, f"Erreur : {str(e)}"
+        return None, f"❌ Erreur : {str(e)}"
 
-with gr.Blocks(title="Machine à Voix & Accents", theme=gr.themes.Soft()) as app:
-    gr.Markdown("# 🌍 La Machine à Accents & Âges")
-    gr.Markdown("Transforme n'importe quel accent en voix d'enfant ou de géant grâce au modificateur de hauteur !")
+# Design de l'application (Thème Glass pour un effet translucide moderne)
+with gr.Blocks(title="Studio Vocal", theme=gr.themes.Glass(primary_hue="indigo")) as app:
+    gr.Markdown("<h1 style='text-align: center;'>🎙️ Studio Vocal Pro</h1>")
     
-    text_input = gr.Textbox(label="Texte à prononcer", placeholder="Ex: Bonjour buana, c'est quand le poker ?")
-    
-    with gr.Row():
-        voice_dropdown = gr.Dropdown(
-            choices=list(VOICES.keys()), 
-            label="1. Choix de l'accent / Ethnie", 
-            value="🌍 Accent Africain (Swahili) - Homme"
-        )
-        
-        age_dropdown = gr.Dropdown(
-            choices=["🧑 Adulte (Normal)", "👶 Enfant (Voix aiguë)", "👹 Voix très grave / Sombre"],
-            label="2. Âge du personnage",
-            value="🧑 Adulte (Normal)"
-        )
-    
-    btn = gr.Button("Générer l'audio", variant="primary")
-    audio_out = gr.Audio(label="Résultat Audio", type="filepath")
-    status = gr.Textbox(label="Statut", interactive=False)
-    
-    btn.click(generate_accent, [text_input, voice_dropdown, age_dropdown], [audio_out, status])
+    with gr.Tabs():
+        with gr.TabItem("📝 Création"):
+            text_input = gr.Textbox(label="Ton texte", lines=3, placeholder="Tape ton texte ici...")
+            voice_dropdown = gr.Dropdown(choices=list(VOICES.keys()), label="🗣️ Voix et Accent", value="🇫🇷 France - Homme (Henri)")
+            
+            with gr.Accordion("⚙️ Réglages Avancés (Âge, Vitesse, Effets)", open=False):
+                preset_dropdown = gr.Dropdown(
+                    choices=["🧑 Normal", "👶 Enfant", "👹 Monstre / Grave", "🤖 Personnalisé (Utiliser les curseurs)"],
+                    label="Mode rapide", value="🧑 Normal"
+                )
+                speed_slider = gr.Slider(minimum=-50, maximum=100, step=5, value=0, label="Vitesse (%)")
+                pitch_slider = gr.Slider(minimum=-100, maximum=100, step=5, value=0, label="Hauteur de voix personnalisée (Hz)")
+            
+            btn = gr.Button("Générer l'audio", variant="primary", size="lg")
+            audio_out = gr.Audio(label="Résultat", type="filepath")
+            status = gr.Textbox(show_label=False, interactive=False)
+            
+            btn.click(generate_pro, [text_input, voice_dropdown, preset_dropdown, speed_slider, pitch_slider], [audio_out, status])
+            
+        with gr.TabItem("ℹ️ Aide"):
+            gr.Markdown("### Comment utiliser le mode personnalisé ?\nSélectionne **🤖 Personnalisé** dans le Mode rapide. Utilise ensuite le curseur de Vitesse pour faire parler le personnage plus ou moins vite, et le curseur de Hauteur (Pitch) pour rendre la voix très aiguë (positif) ou très grave (négatif).")
 
 if __name__ == "__main__":
-    app.launch(inbrowser=True)
+    app.launch()
