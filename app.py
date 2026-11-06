@@ -1,76 +1,78 @@
 import gradio as gr
-from gtts import gTTS
+import edge_tts
+import asyncio
 
-def generate_accent(text, accent_origin):
-    # Dictionnaire étendu au maximum des capacités de Google TTS (Pays et grandes régions)
-    accents = {
-        # --- ANGLAIS (Forte variation selon le pays) ---
-        "Anglais (États-Unis)": ("en", "us"),
-        "Anglais (Royaume-Uni)": ("en", "co.uk"),
-        "Anglais (Australie)": ("en", "com.au"),
-        "Anglais (Irlande)": ("en", "ie"),
-        "Anglais (Afrique du Sud)": ("en", "co.za"),
-        "Anglais (Inde)": ("en", "co.in"),
-        "Anglais (Nigeria)": ("en", "com.ng"),
-        
-        # --- FRANÇAIS ---
-        "Français (France)": ("fr", "fr"),
-        "Français (Québec/Canada)": ("fr", "ca"),
-        "Français (Sénégal)": ("fr", "sn"), # Note: la variation africaine de Google reste très légère
-        
-        # --- ESPAGNOL ---
-        "Espagnol (Espagne)": ("es", "es"),
-        "Espagnol (Mexique)": ("es", "com.mx"),
-        "Espagnol (États-Unis)": ("es", "com"),
-        
-        # --- PORTUGAIS ---
-        "Portugais (Portugal)": ("pt", "pt"),
-        "Portugais (Brésil)": ("pt", "com.br"),
-        
-        # --- AUTRES LANGUES ---
-        "Allemand": ("de", "de"),
-        "Italien": ("it", "it"),
-        "Chinois (Mandarin)": ("zh-CN", "com"),
-        "Japonais": ("ja", "co.jp"),
-        "Russe": ("ru", "ru"),
-        "Arabe": ("ar", "com")
-    }
+# Dictionnaire étendu avec accents ethniques et régionaux
+VOICES = {
+    # --- FRANCOPHONES ---
+    "🇫🇷 France - Homme (Henri)": "fr-FR-HenriNeural",
+    "🇫🇷 France - Femme (Denise)": "fr-FR-DeniseNeural",
+    "🇧🇪 Belgique - Homme (Gerard)": "fr-BE-GerardNeural",
+    "🇧🇪 Belgique - Femme (Charline)": "fr-BE-CharlineNeural",
+    "🇨🇦 Québec - Homme (Antoine)": "fr-CA-AntoineNeural",
+    "🇨🇦 Québec - Femme (Sylvie)": "fr-CA-SylvieNeural",
+    "🇨🇭 Suisse - Homme (Fabrice)": "fr-CH-FabriceNeural",
     
-    lang, tld = accents.get(accent_origin, ("fr", "fr"))
+    # --- ETHNIES & DIVERSITÉ (Voix étrangères lisant du français) ---
+    "🌍 Accent Africain (Swahili) - Homme": "sw-KE-RafikiNeural",
+    "🌍 Accent Africain (Swahili) - Femme": "sw-KE-ZuriNeural",
+    "🏜️ Accent Arabe (Égypte) - Homme": "ar-EG-ShakirNeural",
+    "🏜️ Accent Arabe (Égypte) - Femme": "ar-EG-SalmaNeural",
+    "🌶️ Accent Indien (Hindi) - Homme": "hi-IN-MadhurNeural",
+    "🌶️ Accent Indien (Hindi) - Femme": "hi-IN-SwaraNeural",
+    "🌸 Accent Asiatique (Japonais) - Homme": "ja-JP-KeitaNeural",
+    "🌸 Accent Asiatique (Japonais) - Femme": "ja-JP-NanamiNeural",
+    "🇺🇸 Accent Américain - Homme": "en-US-ChristopherNeural",
+    "🇬🇧 Accent Britannique - Femme": "en-GB-SoniaNeural",
+    "🇪🇸 Accent Espagnol - Homme": "es-ES-AlvaroNeural",
+    "🇩🇪 Accent Allemand - Femme": "de-DE-AmalaNeural"
+}
+
+async def generate_accent(text, voice_choice, age_choice):
+    voice_id = VOICES.get(voice_choice, "fr-FR-HenriNeural")
+    
+    # Ajustement de la fréquence (Pitch) pour simuler l'âge
+    pitch_map = {
+        "🧑 Adulte (Normal)": "+0Hz",
+        "👶 Enfant (Voix aiguë)": "+50Hz",
+        "👹 Voix très grave / Sombre": "-25Hz"
+    }
+    pitch_value = pitch_map.get(age_choice, "+0Hz")
+    
+    output_file = "audio_final.mp3"
     
     try:
-        tts = gTTS(text=text, lang=lang, tld=tld)
-        output_file = "audio_accent.mp3"
-        tts.save(output_file)
-        return output_file, f"Génération réussie avec : {accent_origin}"
+        # On passe le paramètre pitch à la fonction Edge TTS
+        communicate = edge_tts.Communicate(text, voice_id, pitch=pitch_value)
+        await communicate.save(output_file)
+        return output_file, f"Génération réussie : {voice_choice} en mode {age_choice}"
     except Exception as e:
         return None, f"Erreur : {str(e)}"
 
-# Interface Gradio
-with gr.Blocks(title="Machine à Accents", theme=gr.themes.Soft()) as app:
-    gr.Markdown("# 🌍 La Machine à Accents (Max gTTS)")
-    gr.Markdown("**Rappel :** gTTS gère uniquement les accents liés aux pays (via les domaines Google). Pour des accents de villes ou de villages, une IA Premium (ElevenLabs) est requise.")
+with gr.Blocks(title="Machine à Voix & Accents", theme=gr.themes.Soft()) as app:
+    gr.Markdown("# 🌍 La Machine à Accents & Âges")
+    gr.Markdown("Transforme n'importe quel accent en voix d'enfant ou de géant grâce au modificateur de hauteur !")
     
-    text_input = gr.Textbox(label="Texte à prononcer", placeholder="Ex : Bonjour, comment allez-vous aujourd'hui ?")
+    text_input = gr.Textbox(label="Texte à prononcer", placeholder="Ex: Bonjour buana, c'est quand le poker ?")
     
-    accent_dropdown = gr.Dropdown(
-        choices=[
-            "Anglais (États-Unis)", "Anglais (Royaume-Uni)", "Anglais (Australie)", 
-            "Anglais (Irlande)", "Anglais (Afrique du Sud)", "Anglais (Inde)", "Anglais (Nigeria)",
-            "Français (France)", "Français (Québec/Canada)", "Français (Sénégal)",
-            "Espagnol (Espagne)", "Espagnol (Mexique)", "Espagnol (États-Unis)",
-            "Portugais (Portugal)", "Portugais (Brésil)",
-            "Allemand", "Italien", "Chinois (Mandarin)", "Japonais", "Russe", "Arabe"
-        ], 
-        label="Origine de la voix (Le filtre d'accent)", 
-        value="Anglais (États-Unis)"
-    )
+    with gr.Row():
+        voice_dropdown = gr.Dropdown(
+            choices=list(VOICES.keys()), 
+            label="1. Choix de l'accent / Ethnie", 
+            value="🌍 Accent Africain (Swahili) - Homme"
+        )
+        
+        age_dropdown = gr.Dropdown(
+            choices=["🧑 Adulte (Normal)", "👶 Enfant (Voix aiguë)", "👹 Voix très grave / Sombre"],
+            label="2. Âge du personnage",
+            value="🧑 Adulte (Normal)"
+        )
     
     btn = gr.Button("Générer l'audio", variant="primary")
-    audio_out = gr.Audio(label="Résultat", type="filepath")
+    audio_out = gr.Audio(label="Résultat Audio", type="filepath")
     status = gr.Textbox(label="Statut", interactive=False)
     
-    btn.click(generate_accent, [text_input, accent_dropdown], [audio_out, status])
+    btn.click(generate_accent, [text_input, voice_dropdown, age_dropdown], [audio_out, status])
 
 if __name__ == "__main__":
     app.launch(inbrowser=True)
