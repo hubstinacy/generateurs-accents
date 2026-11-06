@@ -23,7 +23,6 @@ VOICES = {
 async def generate_pro(text, voice_choice, preset, speed, pitch_custom):
     voice_id = VOICES.get(voice_choice, "fr-FR-HenriNeural")
     
-    # Gestion des modes rapides ou mode "Pro" (Personnalisé)
     if preset == "👶 Enfant":
         pitch_str = "+50Hz"
     elif preset == "👹 Monstre / Grave":
@@ -31,9 +30,9 @@ async def generate_pro(text, voice_choice, preset, speed, pitch_custom):
     elif preset == "🤖 Personnalisé (Utiliser les curseurs)":
         pitch_str = f"{pitch_custom:+}Hz"
     else:
-        pitch_str = "+0Hz" # Normal
+        pitch_str = "+0Hz"
         
-    speed_str = f"{speed:+}%" # Format requis par edge-tts (ex: +10%, -20%)
+    speed_str = f"{speed:+}%"
     
     output_file = "audio_app.mp3"
     
@@ -44,7 +43,6 @@ async def generate_pro(text, voice_choice, preset, speed, pitch_custom):
     except Exception as e:
         return None, f"❌ Erreur : {str(e)}"
 
-# Design de l'application (Thème Glass pour un effet translucide moderne)
 with gr.Blocks(title="Studio Vocal", theme=gr.themes.Glass(primary_hue="indigo")) as app:
     gr.Markdown("<h1 style='text-align: center;'>🎙️ Studio Vocal Pro</h1>")
     
